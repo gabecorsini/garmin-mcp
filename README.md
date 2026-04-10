@@ -10,7 +10,7 @@ MCP-compatible AI client.
 
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![CI](https://github.com/gcorsini/garmin-mcp/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/gabecorsini/garmin-mcp/actions/workflows/ci.yml/badge.svg)
 
 ---
 
