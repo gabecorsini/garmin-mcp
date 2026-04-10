@@ -51,6 +51,7 @@ jobs:
           import garmin_mcp.tools.nutrition
           import garmin_mcp.tools.profile
           import garmin_mcp.tools.extras
+          import garmin_mcp.tools.stats
           import garmin_mcp.tools.write
           import garmin_mcp.tools.workout_write
           import garmin_mcp.tools._utils

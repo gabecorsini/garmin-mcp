@@ -2,8 +2,8 @@
 
 Personal MCP server for interacting with your Garmin Connect data.
 
-Exposes **55 tools** across 10 domains — activities, health, body composition, training,
-workouts, nutrition, profile, extras, write, and workout write — via the
+Exposes **62 tools** across 11 domains — activities, health, body composition, training,
+workouts, nutrition, profile, extras, stats, write, and workout write — via the
 [Model Context Protocol](https://modelcontextprotocol.io/) over stdio transport.
 Works with Claude Desktop, VS Code / GitHub Copilot, Cursor, OpenCode, and any other
 MCP-compatible AI client.
@@ -220,14 +220,14 @@ Copy-Item agents\garmin.md "$env:USERPROFILE\.config\opencode\agents\garmin.md"
 
 Once installed, OpenCode will load the Garmin-specific context and guidance
 automatically when you start a conversation with the `garmin` agent. The agent
-knows all 55 tool names, understands when data might not be available (older
+knows all 62 tool names, understands when data might not be available (older
 devices, non-running activities, etc.), and provides examples for common queries.
 
 ---
 
 ## Available tools
 
-### Activities (7)
+### Activities (9)
 
 | Tool | Description |
 |---|---|
@@ -236,8 +236,10 @@ devices, non-running activities, etc.), and provides examples for common queries
 | `get_activity_hr_zones` | HR zone breakdown for an activity |
 | `get_activities_by_date` | Activities within a date range |
 | `get_activity_splits` | Per-split pace and HR data |
+| `get_activity_typed_splits` | Typed splits (auto laps, manual laps, intervals) |
 | `get_personal_records` | All-time personal records |
 | `get_activity_count` | Total activity count |
+| `get_last_activity` | Most recent activity summary |
 
 ### Health & Wellness (13)
 
@@ -315,6 +317,16 @@ devices, non-running activities, etc.), and provides examples for common queries
 | `get_morning_training_readiness` | Morning Report readiness score |
 | `get_lactate_threshold` | Lactate threshold HR, pace, and power |
 | `get_fitnessage_data` | Garmin Fitness Age for a specific date |
+
+### Stats (5)
+
+| Tool | Description |
+|---|---|
+| `get_weekly_steps` | Weekly step count totals over a number of weeks |
+| `get_weekly_stress` | Weekly average stress levels over a number of weeks |
+| `get_goals` | Active, completed, or archived Garmin Connect goals |
+| `get_progress_summary` | Aggregated training progress by metric over a date range |
+| `get_cycling_ftp` | Current cycling Functional Threshold Power (FTP) estimate |
 
 ### Write — Health (3)
 

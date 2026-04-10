@@ -181,3 +181,52 @@ def register(mcp: FastMCP) -> None:
         if isinstance(count, dict) and "error" in count:
             return count
         return {"totalCount": count}
+
+    @mcp.tool()
+    async def get_last_activity(
+        ctx: Context,
+    ) -> dict[str, Any]:
+        """
+        Retrieve the most recent Garmin Connect activity.
+
+        Returns:
+            Activity summary including activityId, activityName, activityType,
+            startTimeLocal, distance (meters), duration (seconds), averageHR,
+            maxHR, calories, elevationGain, and averageSpeed.
+        """
+        client = ctx.request_context.lifespan_context["garmin"]
+        activity = garmin_call(client.get_last_activity)
+
+        if isinstance(activity, dict) and "error" in activity:
+            return activity
+
+        keys = [
+            "activityId", "activityName", "activityType", "startTimeLocal",
+            "distance", "duration", "averageHR", "maxHR", "calories",
+            "elevationGain", "averageSpeed", "avgPower",
+        ]
+        if isinstance(activity, list):
+            activity = activity[0] if activity else {}
+        return {k: activity.get(k) for k in keys if activity.get(k) is not None}
+
+    @mcp.tool()
+    async def get_activity_typed_splits(
+        ctx: Context,
+        activity_id: int,
+    ) -> dict[str, Any]:
+        """
+        Retrieve typed split data for a specific activity.
+
+        Typed splits distinguish between different split types within an activity
+        (e.g. auto laps, manual laps, interval splits). More granular than
+        get_activity_splits.
+
+        Args:
+            activity_id: The Garmin activity ID.
+
+        Returns:
+            Typed split summaries grouped by split type, including distance,
+            duration, average pace, average HR, and elevation per split.
+        """
+        client = ctx.request_context.lifespan_context["garmin"]
+        return garmin_call(client.get_activity_typed_splits, activity_id) or {}

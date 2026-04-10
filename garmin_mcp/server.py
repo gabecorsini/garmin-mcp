@@ -22,6 +22,7 @@ from garmin_mcp.tools import (
     health,
     nutrition,
     profile,
+    stats,
     training,
     workouts,
     workout_write,
@@ -52,6 +53,7 @@ mcp = FastMCP(
         "Use the available tools to retrieve fitness activities, health metrics, "
         "sleep data, HRV, stress, body composition, training load, VO2 max, "
         "race predictions, workouts, nutrition summaries, and device/profile info. "
+        "Stats tools provide weekly rollups, goal tracking, progress summaries, and cycling FTP. "
         "Write tools allow logging weight, logging hydration, creating structured workouts, "
         "scheduling workouts to the calendar, and uploading activity files. "
         "All dates should be provided in YYYY-MM-DD format unless otherwise noted."
@@ -68,6 +70,7 @@ workouts.register(mcp)
 nutrition.register(mcp)
 profile.register(mcp)
 extras.register(mcp)
+stats.register(mcp)
 # v2: write tools
 write.register(mcp)
 workout_write.register(mcp)
