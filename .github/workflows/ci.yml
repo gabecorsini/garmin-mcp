@@ -7,20 +7,52 @@ on:
     branches: ["**"]
 
 jobs:
-  syntax-check:
-    name: Python syntax check
+  check:
+    name: "Python ${{ matrix.python-version }}"
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Check syntax (all .py files)
+      - name: Install dependencies
+        run: uv sync --python ${{ matrix.python-version }}
+
+      - name: Syntax check (all .py files)
         run: |
           find . -name "*.py" -not -path "./.venv/*" \
             -exec python -m py_compile {} +
-          echo "All files passed syntax check."
+          echo "Syntax check passed."
+
+      - name: Import check
+        run: |
+          uv run python -c "
+          import garmin_mcp.server
+          import garmin_mcp.auth
+          import garmin_mcp.tools.activities
+          import garmin_mcp.tools.health
+          import garmin_mcp.tools.body_composition
+          import garmin_mcp.tools.training
+          import garmin_mcp.tools.workouts
+          import garmin_mcp.tools.nutrition
+          import garmin_mcp.tools.profile
+          import garmin_mcp.tools.extras
+          import garmin_mcp.tools.write
+          import garmin_mcp.tools.workout_write
+          import garmin_mcp.tools._utils
+          print('All modules imported successfully.')
+          "
