@@ -69,7 +69,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 2. Clone and install dependencies
 
 ```bash
-git clone https://github.com/gcorsini/garmin-mcp.git
+git clone https://github.com/gabecorsini/garmin-mcp.git
 cd garmin-mcp
 uv sync
 ```
