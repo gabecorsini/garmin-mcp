@@ -9,6 +9,10 @@ wheels/
 # Virtual environments
 .venv
 
+# Agent instruction files — local dev context, not for public consumption
+AGENTS.md
+CLAUDE.md
+
 # Garmin token cache — contains OAuth tokens, must never be committed
 # (This directory lives in your home folder, not the project root, but
 # we add it here as an explicit safety net.)
