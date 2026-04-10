@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Garmin token cache — contains OAuth tokens, must never be committed
+# (This directory lives in your home folder, not the project root, but
+# we add it here as an explicit safety net.)
+.garminconnect/
+garmin_tokens.json

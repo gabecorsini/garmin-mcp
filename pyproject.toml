@@ -1,0 +1,20 @@
+[project]
+name = "garmin-mcp"
+version = "0.1.0"
+description = "Personal MCP server for interacting with Garmin Connect data"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "garminconnect>=0.3.1",
+    "garmin-health-data>=2.5.0",
+    "mcp[cli]>=1.27.0",
+    "pydantic>=2.0",
+]
+
+[project.scripts]
+garmin-mcp = "garmin_mcp.server:main"
+garmin-mcp-auth = "garmin_mcp.scripts.auth:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
