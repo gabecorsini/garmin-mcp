@@ -362,6 +362,10 @@ devices, non-running activities, etc.), and provides examples for common queries
 - **Data availability:** Not all tools return data for all devices or activity types.
   Metrics like VO2 max, race predictions, lactate threshold, and HRV require a
   compatible Garmin device (e.g. Forerunner, Fenix, Venu series).
+- **Not supported:** The [Lifestyle Journal](https://support.garmin.com/en-US/?faq=QKPwHY88Ug0tadEACs9Ul9)
+  (mood, energy, symptoms, menstrual cycle logging) is not exposed by any known
+  API endpoint in `python-garminconnect` and cannot currently be read or written
+  by this server.
 
 ---
 
