@@ -2,7 +2,7 @@
 
 Personal MCP server for interacting with your Garmin Connect data.
 
-Exposes **62 tools** across 11 domains — activities, health, body composition, training,
+Exposes **63 tools** across 11 domains — activities, health, body composition, training,
 workouts, nutrition, profile, extras, stats, write, and workout write — via the
 [Model Context Protocol](https://modelcontextprotocol.io/) over stdio transport.
 Works with Claude Desktop, VS Code / GitHub Copilot, Cursor, OpenCode, and any other
@@ -336,12 +336,13 @@ devices, non-running activities, etc.), and provides examples for common queries
 | `log_hydration` | Log a water intake entry |
 | `upload_activity` | Upload a FIT, TCX, or GPX activity file |
 
-### Write — Workouts (3)
+### Write — Workouts (4)
 
 | Tool | Description |
 |---|---|
 | `create_workout` | Create a structured workout in the Garmin library |
 | `schedule_workout` | Schedule a saved workout onto a calendar date |
+| `remove_scheduled_workouts` | Remove scheduled workout calendar entries by date or date range |
 | `delete_workout` | Delete a workout from the library |
 
 ---

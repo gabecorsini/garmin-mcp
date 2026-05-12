@@ -9,9 +9,13 @@ supported for intervals.
 
 from __future__ import annotations
 
+from datetime import date as date_cls
+from datetime import datetime, timedelta
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP, Context
+
+from garmin_mcp.tools._utils import garmin_call
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +115,84 @@ _SPORT_TYPES = {
     "cardio":   {"sportTypeId": 26, "sportTypeKey": "cardio_training",  "displayOrder": 7},
     "other":    {"sportTypeId": 8, "sportTypeKey": "other",             "displayOrder": 8},
 }
+
+
+def _parse_date(value: str, field_name: str) -> date_cls:
+    """Parse a YYYY-MM-DD date string with a friendly validation error."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ValueError(f"{field_name} must be in YYYY-MM-DD format, got: {value!r}") from exc
+
+
+def _resolve_target_dates(
+    date: str | None = None,
+    dates: list[str] | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> list[date_cls]:
+    """Resolve exact dates or an inclusive range into a sorted unique date list."""
+    exact_dates: list[date_cls] = []
+    if date:
+        exact_dates.append(_parse_date(date, "date"))
+    if dates:
+        for idx, value in enumerate(dates):
+            exact_dates.append(_parse_date(value, f"dates[{idx}]"))
+
+    has_exact_dates = bool(exact_dates)
+    has_range = bool(start_date or end_date)
+
+    if has_exact_dates and has_range:
+        raise ValueError("Provide either date/date(s) or start_date+end_date, not both.")
+
+    if not has_exact_dates and not has_range:
+        raise ValueError("Provide date, dates, or both start_date and end_date.")
+
+    if has_range:
+        if not start_date or not end_date:
+            raise ValueError("Both start_date and end_date are required for a date range.")
+
+        start = _parse_date(start_date, "start_date")
+        end = _parse_date(end_date, "end_date")
+        if end < start:
+            raise ValueError("end_date must be on or after start_date.")
+
+        span_days = (end - start).days
+        if span_days > 366:
+            raise ValueError("Date range cannot exceed 366 days.")
+
+        return [start + timedelta(days=offset) for offset in range(span_days + 1)]
+
+    return sorted(set(exact_dates))
+
+
+def _scheduled_workout_summary(item: dict[str, Any]) -> dict[str, Any]:
+    """Return a compact, stable summary for a scheduled workout calendar item."""
+    return {
+        "scheduledWorkoutId": item.get("id"),
+        "workoutId": item.get("workoutId"),
+        "title": item.get("title"),
+        "date": item.get("date"),
+        "sportTypeKey": item.get("sportTypeKey"),
+        "protectedWorkoutSchedule": bool(item.get("protectedWorkoutSchedule", False)),
+    }
+
+
+def _get_scheduled_workouts(client: Any, year: int, month: int) -> dict[str, Any]:
+    """Fetch calendar items for a month across garminconnect versions."""
+    year = int(year)
+    month = int(month)
+    if year < 2000:
+        raise ValueError(f"year must be 2000 or later, got: {year}")
+    if month < 1 or month > 12:
+        raise ValueError(f"month must be between 1 and 12, got: {month}")
+
+    if hasattr(client, "get_scheduled_workouts"):
+        return garmin_call(client.get_scheduled_workouts, year, month) or {}
+
+    base_url = getattr(client, "garmin_scheduled_workouts_url", "/calendar-service")
+    url = f"{base_url}/year/{year}/month/{month - 1}"
+    return garmin_call(client.connectapi, url) or {}
 
 
 # ---------------------------------------------------------------------------
@@ -323,3 +405,118 @@ def register(mcp: FastMCP) -> None:
         client = ctx.request_context.lifespan_context["garmin"]
         result = client.delete_workout(workout_id=workout_id)
         return result or {"status": "deleted", "workout_id": workout_id}
+
+    @mcp.tool()
+    async def remove_scheduled_workouts(
+        ctx: Context,
+        date: str | None = None,
+        dates: list[str] | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        workout_id: int | None = None,
+        title_contains: str | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Remove scheduled workouts from the Garmin calendar by exact date(s) or an inclusive date range.
+
+        This removes calendar instances only. It does NOT delete the underlying workout
+        template from your Garmin workout library.
+
+        Args:
+            date: Single target date in YYYY-MM-DD format.
+            dates: Optional list of exact dates in YYYY-MM-DD format.
+            start_date: Inclusive range start in YYYY-MM-DD format.
+            end_date: Inclusive range end in YYYY-MM-DD format.
+            workout_id: Optional filter to remove only calendar entries for a specific workout template.
+            title_contains: Optional case-insensitive title substring filter.
+            dry_run: When true, return the matching scheduled workouts without removing them.
+
+        Returns:
+            Dict describing the matched scheduled workouts and any removals performed.
+        """
+        client = ctx.request_context.lifespan_context["garmin"]
+
+        target_dates = _resolve_target_dates(
+            date=date,
+            dates=dates,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        target_date_strings = {value.isoformat() for value in target_dates}
+        target_months = sorted({(value.year, value.month) for value in target_dates})
+
+        matching_items: list[dict[str, Any]] = []
+        for year, month in target_months:
+            month_data = _get_scheduled_workouts(client, year, month)
+            if isinstance(month_data, dict) and "error" in month_data:
+                return month_data
+
+            for item in month_data.get("calendarItems", []):
+                if item.get("itemType") != "workout":
+                    continue
+                if item.get("date") not in target_date_strings:
+                    continue
+                if workout_id is not None and item.get("workoutId") != workout_id:
+                    continue
+                if title_contains and title_contains.casefold() not in str(item.get("title") or "").casefold():
+                    continue
+                matching_items.append(item)
+
+        matching_items.sort(key=lambda item: (str(item.get("date") or ""), int(item.get("id") or 0)))
+        matches = [_scheduled_workout_summary(item) for item in matching_items]
+
+        if dry_run:
+            return {
+                "status": "dry_run",
+                "matched_count": len(matches),
+                "filters": {
+                    "date": date,
+                    "dates": dates or [],
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "workout_id": workout_id,
+                    "title_contains": title_contains,
+                },
+                "matches": matches,
+            }
+
+        removed: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
+
+        for item in matching_items:
+            scheduled_workout_id = item.get("id")
+            result = garmin_call(client.unschedule_workout, scheduled_workout_id)
+            if isinstance(result, dict) and "error" in result:
+                errors.append(
+                    {
+                        **_scheduled_workout_summary(item),
+                        "error": result["error"],
+                    }
+                )
+                continue
+
+            removed.append(_scheduled_workout_summary(item))
+
+        status = "removed"
+        if errors and removed:
+            status = "partial"
+        elif errors and not removed:
+            status = "error"
+
+        return {
+            "status": status,
+            "matched_count": len(matches),
+            "removed_count": len(removed),
+            "error_count": len(errors),
+            "filters": {
+                "date": date,
+                "dates": dates or [],
+                "start_date": start_date,
+                "end_date": end_date,
+                "workout_id": workout_id,
+                "title_contains": title_contains,
+            },
+            "removed": removed,
+            "errors": errors,
+        }
